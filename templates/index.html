@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Utku Erekinci Kütüphanesi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            margin: 40px;
+        }
+
+        h1 {
+            color: #243b53;
+        }
+
+        h2 {
+            margin-top: 35px;
+            color: #334e68;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background-color: #243b53;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f1f5f9;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Utku Erekinci Kütüphanesi</h1>
+    <p>Kütüphane Veritabanı Yönetim Sistemi</p>
+
+    {% for tablo_adi, tablo in tablolar.items() %}
+
+        <h2>{{ tablo_adi }}</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    {% for sutun in tablo.sutunlar %}
+                        <th>{{ sutun }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for kayit in tablo.veriler %}
+                    <tr>
+                        {% for deger in kayit %}
+                            <td>{{ deger }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    {% endfor %}
+
+</body>
+</html>
