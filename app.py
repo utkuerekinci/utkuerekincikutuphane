@@ -1,30 +1,39 @@
+"""Utku Erekinci Kütüphanesi: Vercel'de Turso, yerelde SQLite."""
+
 from datetime import date
 from pathlib import Path
 import os
-import shutil
 import sqlite3
 
 from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
 
-KLASOR = Path(__file__).resolve().parent
-KAYNAK_DB = KLASOR / "utkuerekincikutuphane.db"
+YEREL_DB = Path(__file__).resolve().parent / "utkuerekincikutuphane.db"
 
 
 def baglanti_ac():
-    # Vercel'de proje dosyalari salt okunurdur. Yazmak icin /tmp kullanilir.
-    # /tmp verileri kalici DEĞİLDİR; farkli fonksiyon kopyalari paylasmaz.
-    if os.environ.get("VERCEL"):
-        db_yolu = Path("/tmp/utkuerekincikutuphane.db")
-        if not db_yolu.exists():
-            shutil.copyfile(KAYNAK_DB, db_yolu)
-    else:
-        db_yolu = KAYNAK_DB
+    """Vercel'de kalıcı Turso veritabanına; yerelde SQLite dosyasına bağlan."""
+    url = os.environ.get("TURSO_DATABASE_URL")
+    token = os.environ.get("TURSO_AUTH_TOKEN")
 
-    baglanti = sqlite3.connect(db_yolu, timeout=10)
-    baglanti.row_factory = sqlite3.Row
-    return baglanti
+    if url and token:
+        import libsql
+        return libsql.connect(database=url, auth_token=token)
+
+    # Yanlış yapılandırılmış bir yayında sessizce geçici SQLite'a geçme.
+    if os.environ.get("VERCEL"):
+        raise RuntimeError(
+            "TURSO_DATABASE_URL ve TURSO_AUTH_TOKEN Vercel ortamında tanımlanmalı."
+        )
+
+    return sqlite3.connect(YEREL_DB, timeout=10)
+
+
+def sozluk_kayitlar(cursor):
+    """sqlite3 ve libsql cursor sonuçlarını şablona uygun sözlüğe dönüştür."""
+    sutunlar = [bilgi[0] for bilgi in cursor.description]
+    return [dict(zip(sutunlar, satir)) for satir in cursor.fetchall()]
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -33,6 +42,7 @@ def anasayfa():
     basarili = request.args.get("eklendi") == "1"
     form = request.form if request.method == "POST" else {}
     db = baglanti_ac()
+
     try:
         if request.method == "POST":
             kitap_adi = request.form.get("kitap_adi", "").strip()
@@ -54,18 +64,20 @@ def anasayfa():
                 elif fiyat < 0:
                     hata = "Fiyat sıfırdan küçük olamaz."
                 else:
-                    yazar = db.execute(
+                    yazarlar = sozluk_kayitlar(db.execute(
                         'SELECT YazarID, YazarAdi, YazarSoyadi FROM "Yazarlar" WHERE YazarID = ?',
                         (yazar_id,),
-                    ).fetchone()
-                    yayinevi = db.execute(
+                    ))
+                    yayinevleri = sozluk_kayitlar(db.execute(
                         'SELECT YayineviID, YayineviAdi FROM "YayınEvleri" WHERE YayineviID = ?',
                         (yayinevi_id,),
-                    ).fetchone()
+                    ))
 
-                    if yazar is None or yayinevi is None:
+                    if not yazarlar or not yayinevleri:
                         hata = "Listeden geçerli bir yazar ve yayınevi seçin."
                     else:
+                        yazar = yazarlar[0]
+                        yayinevi = yayinevleri[0]
                         yazar_adi = f"{yazar['YazarAdi']} {yazar['YazarSoyadi']}".strip()
                         db.execute(
                             '''INSERT INTO "Kitaplar"
@@ -81,13 +93,13 @@ def anasayfa():
                         db.commit()
                         return redirect(url_for("anasayfa", eklendi="1"))
 
-        yazarlar = db.execute(
+        yazarlar = sozluk_kayitlar(db.execute(
             'SELECT YazarID, YazarAdi, YazarSoyadi FROM "Yazarlar" '
             'ORDER BY YazarAdi, YazarSoyadi'
-        ).fetchall()
-        yayinevleri = db.execute(
+        ))
+        yayinevleri = sozluk_kayitlar(db.execute(
             'SELECT YayineviID, YayineviAdi FROM "YayınEvleri" ORDER BY YayineviAdi'
-        ).fetchall()
+        ))
 
         tablolar = {}
         for tablo in ("Kitaplar", "Yazarlar", "YayınEvleri"):
