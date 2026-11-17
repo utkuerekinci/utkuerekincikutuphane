@@ -1,148 +1,58 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Utku Erekinci Kütüphanesi</title>
-    <style>
-        * { box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #f4f6f8; color: #243b53; margin: 0; }
-        main { max-width: 1200px; margin: 35px auto; padding: 0 20px 45px; }
-        h1 { margin-bottom: 5px; }
-        h2 { margin-top: 0; }
-        .subtitle { color: #60768a; margin-bottom: 30px; }
-        .panel { background: white; padding: 24px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 9px rgba(0,0,0,.055); }
-        .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px 20px; }
-        label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
-        input, select { width: 100%; padding: 11px; border: 1px solid #bccbd7; border-radius: 6px; background: white; font: inherit; }
-        button { margin-top: 18px; padding: 12px 22px; border: 0; border-radius: 6px; background: #243b53; color: white; font: inherit; cursor: pointer; }
-        button:hover { background: #334e68; }
-        .notice { padding: 13px 15px; border-radius: 6px; margin: 12px 0 20px; }
-        .success { background: #e5f6e9; color: #1d6534; }
-        .error { background: #fff0ee; color: #9b3025; }
-        .hint { color: #60768a; font-size: 13px; margin-top: 12px; }
-        .table-wrap { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; background: white; margin-top: 14px; }
-        th, td { padding: 12px; border: 1px solid #d9e1e8; text-align: left; white-space: nowrap; }
-        th { background: #243b53; color: white; }
-        tr:nth-child(even) { background: #f1f5f9; }
-        .table-section { margin-top: 35px; }
-        .secondary-panel { border-left: 4px solid #57718a; }
-        details summary { cursor: pointer; font-weight: 700; font-size: 18px; }
-        details[open] summary { margin-bottom: 18px; }
-        @media(max-width: 640px) { .form-grid { grid-template-columns: 1fr; } main { padding: 0 12px 30px; } .panel { padding: 18px; } }
-    </style>
-</head>
-<body>
-<main>
-    <h1>Utku Erekinci Kütüphanesi</h1>
-    <p class="subtitle">Kütüphane Veritabanı Yönetim Sistemi</p>
-
-    <section class="panel secondary-panel" id="yazar-ekle">
-        <details {% if hata_yazar or basarili == 'yazar' %}open{% endif %}>
-            <summary>Listede yok mu? Yeni Yazar Ekle</summary>
-            {% if basarili == 'yazar' %}
-                <p class="notice success">Yeni yazar kaydedildi ve aşağıdaki kitap formunda seçili hale getirildi.</p>
-            {% endif %}
-            {% if hata_yazar %}
-                <p class="notice error">{{ hata_yazar }}</p>
-            {% endif %}
-            <form method="post" action="{{ url_for('anasayfa') }}#yazar-ekle">
-                <input type="hidden" name="islem" value="yazar">
-                <div class="form-grid">
-                    <div>
-                        <label for="yazar_adi">Yazar adı</label>
-                        <input type="text" id="yazar_adi" name="yazar_adi" maxlength="100" value="{{ form_yazar.get('yazar_adi', '') }}" required>
-                    </div>
-                    <div>
-                        <label for="yazar_soyadi">Yazar soyadı</label>
-                        <input type="text" id="yazar_soyadi" name="yazar_soyadi" maxlength="100" value="{{ form_yazar.get('yazar_soyadi', '') }}" required>
-                    </div>
-                    <div>
-                        <label for="yazar_dt">Doğum tarihi (isteğe bağlı)</label>
-                        <input type="date" id="yazar_dt" name="yazar_dt" value="{{ form_yazar.get('yazar_dt', '') }}">
-                    </div>
-                    <div>
-                        <label for="yazar_ot">Ölüm tarihi (isteğe bağlı)</label>
-                        <input type="date" id="yazar_ot" name="yazar_ot" value="{{ form_yazar.get('yazar_ot', '') }}">
-                    </div>
-                </div>
-                <button type="submit">Yazarı Kaydet</button>
-            </form>
-        </details>
-    </section>
-
-    <section class="panel" id="kitap-ekle" aria-labelledby="form-baslik">
-        <h2 id="form-baslik">Yeni Kitap Ekle</h2>
-        {% if basarili == 'kitap' %}
-            <p class="notice success">Kitap kaydı başarıyla veritabanına eklendi.</p>
-        {% endif %}
-        {% if hata_kitap %}
-            <p class="notice error">{{ hata_kitap }}</p>
-        {% endif %}
-        <form method="post" action="{{ url_for('anasayfa') }}#kitap-ekle">
-            <input type="hidden" name="islem" value="kitap">
-            <div class="form-grid">
-                <div>
-                    <label for="kitap_adi">Kitap adı</label>
-                    <input type="text" id="kitap_adi" name="kitap_adi" maxlength="200" value="{{ form_kitap.get('kitap_adi', '') }}" required>
-                </div>
-                <div>
-                    <label for="basim_yili">Basım yılı</label>
-                    <input type="number" id="basim_yili" name="basim_yili" min="1000" max="{{ max_yil }}" value="{{ form_kitap.get('basim_yili', '') }}" required>
-                </div>
-                <div>
-                    <label for="yazar_id">Yazar</label>
-                    <select id="yazar_id" name="yazar_id" required>
-                        <option value="">Yazar seçin</option>
-                        {% for yazar in yazarlar %}
-                            <option value="{{ yazar['YazarID'] }}" {% if form_kitap.get('yazar_id', '') == yazar['YazarID']|string %}selected{% endif %}>
-                                {{ yazar['YazarAdi'] }} {{ yazar['YazarSoyadi'] }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    <p class="hint">Yazar listede yoksa üstteki “Yeni Yazar Ekle” bölümünü açın.</p>
-                </div>
-                <div>
-                    <label for="yayinevi_id">Yayınevi</label>
-                    <select id="yayinevi_id" name="yayinevi_id" required>
-                        <option value="">Yayınevi seçin</option>
-                        {% for yayinevi in yayinevleri %}
-                            <option value="{{ yayinevi['YayineviID'] }}" {% if form_kitap.get('yayinevi_id', '') == yayinevi['YayineviID']|string %}selected{% endif %}>
-                                {{ yayinevi['YayineviAdi'] }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label for="fiyat">Fiyat (TL, tam sayı)</label>
-                    <input type="number" id="fiyat" name="fiyat" min="0" step="1" value="{{ form_kitap.get('fiyat', '') }}" required>
-                </div>
-            </div>
-            <button type="submit">Kitabı Kaydet</button>
-        </form>
-        <p class="hint">Vercel'de kayıtlar Turso bulut veritabanında saklanır. Yereldeki SQLite dosyası ayrıdır.</p>
-    </section>
-
-    {% for tablo_adi, tablo in tablolar.items() %}
-    <section class="table-section">
-        <h2>{{ tablo_adi }} ({{ tablo.veriler|length }} kayıt)</h2>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>{% for sutun in tablo.sutunlar %}<th>{{ sutun }}</th>{% endfor %}</tr>
-                </thead>
-                <tbody>
-                    {% for kayit in tablo.veriler %}
-                        <tr>{% for deger in kayit %}<td>{{ deger if deger is not none else '' }}</td>{% endfor %}</tr>
-                    {% else %}
-                        <tr><td colspan="{{ tablo.sutunlar|length }}">Henüz kayıt yok.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </section>
-    {% endfor %}
-</main>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block title %}Kütüphane Kataloğu{% endblock %}
+{% block content %}
+<div class="intro"><div><p class="eyebrow">DİJİTAL KÜTÜPHANE KATALOĞU</p><h1>Kitap koleksiyonu</h1><p class="lead">Kitapları arayın, filtreleyin ve katalog kayıtlarını inceleyin. Herkes yeni kayıt ekleyebilir, kitapları düzenleyebilir, silebilir veya ödünç durumunu değiştirebilir.</p></div><a class="btn btn-primary" href="{{ url_for('kitap_ekle') }}">+ Yeni Kitap Ekle</a></div>
+<section class="recommend-banner" aria-label="Rastgele kitap önerisi">
+ <div><span class="recommend-icon" aria-hidden="true">🎲</span><strong>Bugün Ne Okusam?</strong><p>Karar veremiyorsan, kütüphaneden sana rastgele bir kitap seçelim.</p></div>
+ <a class="btn btn-primary" href="{{ url_for('bugun_ne_okusam') }}">Bana Kitap Öner</a>
+</section>
+<section class="stats" aria-label="Kütüphane istatistikleri">
+ <div class="stat"><span>Toplam kitap</span><strong>{{ istatistik['toplam'] or 0 }}</strong></div>
+ <div class="stat"><span>Rafta mevcut</span><strong class="green">{{ istatistik['mevcut'] or 0 }}</strong></div>
+ <div class="stat"><span>Ödünçte</span><strong class="amber">{{ istatistik['odunc'] or 0 }}</strong></div>
+ <div class="stat"><span>Listelenen sonuç</span><strong>{{ filtre_sayisi }}</strong></div>
+</section>
+{% if istatistik['belirsiz'] %}<p class="info-line">{{ istatistik['belirsiz'] }} eski kitabın ödünç durumu henüz belirtilmemiş. Kitap durumunu tablodan değiştirebilirsiniz.</p>{% endif %}
+<section class="panel" aria-label="Katalog arama filtreleme">
+ <form method="get" action="{{ url_for('anasayfa') }}" class="searchgrid">
+  <label class="field wide">Kitap ara<input type="search" name="q" value="{{ q }}" maxlength="100" placeholder="Kitap adı, yazar, ISBN, yayınevi veya raf kodu"></label>
+  <label class="field">Kategori<select name="kategori"><option value="">Tüm kategoriler</option>{% for secenek in kategoriler %}<option value="{{ secenek }}" {% if kategori == secenek %}selected{% endif %}>{{ secenek }}</option>{% endfor %}</select></label>
+  <label class="field">Durum<select name="durum"><option value="">Tüm durumlar</option><option value="Mevcut" {% if durum == 'Mevcut' %}selected{% endif %}>Mevcut</option><option value="Ödünçte" {% if durum == 'Ödünçte' %}selected{% endif %}>Ödünçte</option><option value="Belirtilmedi" {% if durum == 'Belirtilmedi' %}selected{% endif %}>Belirtilmedi</option></select></label>
+  <label class="field">Sırala<select name="sirala">{% for key,(etiket,_) in siralama_secenekleri.items() %}<option value="{{ key }}" {% if sirala == key %}selected{% endif %}>{{ etiket }}</option>{% endfor %}</select></label>
+  <div class="search-actions"><button class="btn btn-primary" type="submit">Ara / Filtrele</button><a class="btn btn-light" href="{{ url_for('anasayfa') }}">Temizle</a></div>
+ </form>
+</section>
+<section class="panel" id="katalog">
+ <div class="sectionhead"><div><h2>Kitaplar</h2><p>{{ filtre_sayisi }} kayıt bulundu</p></div></div>
+ {% if kitaplar %}
+ <div class="table-scroll"><table><thead><tr><th>ID</th><th>Kitap</th><th>Yazar</th><th>Yayınevi / Yıl</th><th>Kategori</th><th>Fiyat</th><th>Raf</th><th>Durum</th><th>İşlemler</th></tr></thead><tbody>
+ {% for kitap in kitaplar %}
+ <tr><td class="muted">#{{ kitap['KitapID'] }}</td>
+ <td><strong class="book-title">{{ kitap['KitapAdi'] }}</strong>{% if kitap['ISBN'] %}<small class="sub">ISBN: {{ kitap['ISBN'] }}</small>{% endif %}</td>
+ <td>{{ kitap['KitapYazarAdi'] or 'Belirtilmedi' }}</td>
+ <td>{{ kitap['KitapYayinevi'] or 'Belirtilmedi' }}<small class="sub">{{ kitap['KitapBasimYili'] or '—' }}</small></td>
+ <td><span class="pill neutral">{{ kitap['Kategori'] or 'Belirtilmedi' }}</span></td>
+ <td>{{ kitap['Fiyat'] if kitap['Fiyat'] is not none else '—' }} TL</td>
+ <td><code>{{ kitap['RafKodu'] or '—' }}</code></td>
+ <td><form class="inline-form" method="post" action="{{ url_for('durum_degistir',kitap_id=kitap['KitapID']) }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="pill status {% if kitap['Durum']=='Ödünçte' %}borrowed{% elif kitap['Durum']=='Mevcut' %}available{% else %}neutral{% endif %}" type="submit" title="Durumu değiştir">{{ kitap['Durum'] or 'Belirtilmedi' }}</button></form></td>
+ <td class="actions"><a class="btn btn-small btn-light" href="{{ url_for('kitap_duzenle',kitap_id=kitap['KitapID']) }}">Düzenle</a><form class="inline-form" method="post" action="{{ url_for('kitap_sil',kitap_id=kitap['KitapID']) }}" onsubmit="return confirm('Bu kitap Turso veritabanından kalıcı olarak silinecek. Devam edilsin mi?');"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-small btn-danger" type="submit">Sil</button></form></td>
+ </tr>{% endfor %}
+ </tbody></table></div>
+ {% else %}<p class="empty">Bu arama veya filtreyle eşleşen kitap bulunamadı.</p>{% endif %}
+ {% if toplam_sayfa > 1 %}
+ <nav class="pagination" aria-label="Sayfalama"><span>Sayfa {{ sayfa }} / {{ toplam_sayfa }}</span><div>
+ {% if sayfa > 1 %}<a class="btn btn-light" href="{{ url_for('anasayfa',q=q,kategori=kategori,durum=durum,sirala=sirala,sayfa=sayfa-1) }}">← Önceki</a>{% endif %}
+ {% if sayfa < toplam_sayfa %}<a class="btn btn-light" href="{{ url_for('anasayfa',q=q,kategori=kategori,durum=durum,sirala=sirala,sayfa=sayfa+1) }}">Sonraki →</a>{% endif %}
+ </div></nav>{% endif %}
+</section>
+<div class="two-panels">
+<section class="panel" id="yazarlar"><div class="sectionhead"><div><h2>Yazarlar</h2><p>{{ yazarlar|length }} yazar kayıtlı</p></div></div>
+<details class="subform"><summary>+ Yeni Yazar Ekle</summary><form method="post" action="{{ url_for('yazar_kaydet') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><div class="formgrid"><label class="field">Ad *<input name="ad" required maxlength="100"></label><label class="field">Soyad *<input name="soyad" required maxlength="100"></label><label class="field">Doğum tarihi<input type="date" name="dogum"></label><label class="field">Ölüm tarihi<input type="date" name="olum"></label></div><button class="btn btn-primary">Yazarı Kaydet</button></form></details>
+<div class="compact-scroll"><table class="compact"><thead><tr><th>Yazar</th><th>Doğum</th><th>Ölüm</th></tr></thead><tbody>{% for yazar in yazarlar %}<tr><td>{{ yazar['YazarAdi'] }} {{ yazar['YazarSoyadi'] }}</td><td>{{ yazar['YazarDT'] or '—' }}</td><td>{{ yazar['YazarOT'] or '—' }}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+<section class="panel" id="yayinevleri"><div class="sectionhead"><div><h2>Yayınevleri</h2><p>{{ yayinevleri|length }} yayınevi kayıtlı</p></div></div>
+<details class="subform"><summary>+ Yeni Yayınevi Ekle</summary><form method="post" action="{{ url_for('yayinevi_kaydet') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><div class="formgrid"><label class="field wide">Yayınevi adı *<input name="ad" required maxlength="180"></label><label class="field">Kuruluş yılı<input type="number" name="yil" min="1400" max="{{ 2100 }}"></label><label class="field">Şehir<input name="sehir" maxlength="100"></label><label class="field wide">Web sitesi<input type="url" name="url" maxlength="250" placeholder="https://"></label></div><button class="btn btn-primary">Yayınevini Kaydet</button></form></details>
+<div class="compact-scroll"><table class="compact"><thead><tr><th>Yayınevi</th><th>Şehir</th><th>Kuruluş</th></tr></thead><tbody>{% for yayin in yayinevleri %}<tr><td>{{ yayin['YayineviAdi'] }}</td><td>{{ yayin['YayineviSehir'] or '—' }}</td><td>{{ yayin['YayineviKY'] or '—' }}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Bugün Ne Okusam?{% endblock %}
+{% block content %}
+<section class="panel recommendation-page">
+  <p class="eyebrow">KÜTÜPHANEDEN BİR ÖNERİ</p>
+  <h1>Bugün Ne Okusam? 🎲</h1>
+  <p class="lead">Kitap seçmekte kararsızsan şansını dene. Üyelik gerekmiyor.</p>
+  {% if kitap %}
+  <article class="recommend-book">
+    <p class="eyebrow">SENİN İÇİN SEÇTİĞİMİZ KİTAP</p>
+    <h2>{{ kitap['KitapAdi'] }}</h2>
+    <dl class="recommend-detail">
+      <div><dt>Yazar</dt><dd>{{ kitap['KitapYazarAdi'] or 'Belirtilmedi' }}</dd></div>
+      <div><dt>Yayınevi</dt><dd>{{ kitap['KitapYayinevi'] or 'Belirtilmedi' }}</dd></div>
+      <div><dt>Basım yılı</dt><dd>{{ kitap['KitapBasimYili'] or 'Belirtilmedi' }}</dd></div>
+      <div><dt>Kategori</dt><dd>{{ kitap['Kategori'] or 'Belirtilmedi' }}</dd></div>
+      <div><dt>Raf</dt><dd>{{ kitap['RafKodu'] or 'Belirtilmedi' }}</dd></div>
+      <div><dt>Durum</dt><dd><span class="pill {% if kitap['Durum']=='Mevcut' %}available{% elif kitap['Durum']=='Ödünçte' %}borrowed{% else %}neutral{% endif %}">{{ kitap['Durum'] or 'Belirtilmedi' }}</span></dd></div>
+    </dl>
+    {% if kitap['Durum'] == 'Ödünçte' %}<p class="info-line">Bu kitap şu anda ödünçte görünüyor.</p>{% elif kitap['Durum'] == 'Belirtilmedi' %}<p class="info-line">Bu kitabın rafta olup olmadığı henüz belirtilmemiş.</p>{% endif %}
+  </article>
+  <div class="recommend-buttons">
+    <a class="btn btn-primary" href="{{ url_for('bugun_ne_okusam', onceki=kitap['KitapID']) }}">🎲 Başka Kitap Öner</a>
+    <a class="btn btn-light" href="{{ url_for('anasayfa', q=kitap['KitapAdi']) }}">Katalogda Gör</a>
+  </div>
+  {% else %}
+  <p class="empty">Henüz önerilecek kitap bulunamadı. Kataloğa yeni kitap eklendiğinde burada öneriler çıkacak.</p>
+  <a class="btn btn-light" href="{{ url_for('anasayfa') }}">Kataloğa Dön</a>
+  {% endif %}
+</section>
+{% endblock %}

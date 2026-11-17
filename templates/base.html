@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Utku Erekinci Kütüphanesi: kitap kataloğu, yazarlar ve yayınevleri.">
+  <title>{% block title %}Katalog{% endblock %} · Utku Erekinci Kütüphanesi</title>
+  <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
+</head>
+<body>
+<header class="topbar">
+ <div class="container topinner">
+  <a class="brand" href="{{ url_for('anasayfa') }}"><span class="brandmark">UE</span><span><strong>Utku Erekinci Kütüphanesi</strong><small>Flask · SQL · Turso</small></span></a>
+  <nav aria-label="Üst menü" class="nav">
+   <a href="{{ url_for('anasayfa') }}">Katalog</a>
+   <a href="{{ url_for('bugun_ne_okusam') }}">🎲 Bugün Ne Okusam?</a>
+   <a href="{{ url_for('anasayfa') }}#yazarlar">Yazarlar</a>
+   <a href="{{ url_for('anasayfa') }}#yayinevleri">Yayınevleri</a>
+   <a class="btn btn-primary" href="{{ url_for('kitap_ekle') }}">+ Kitap Ekle</a>
+  </nav>
+ </div>
+</header>
+<main class="container main">
+ {% for tur, mesaj in get_flashed_messages(with_categories=true) %}
+ <div class="notice {{ 'notice-success' if tur == 'success' else 'notice-error' }}" role="status">{{ mesaj }}</div>
+ {% endfor %}
+ {% block content %}{% endblock %}
+</main>
+<footer class="footer"><div class="container">Veri Tabanı Yönetim Sistemleri · Utku Erekinci Kütüphanesi <span>· Python / Flask / Turso</span></div></footer>
+</body>
+</html>

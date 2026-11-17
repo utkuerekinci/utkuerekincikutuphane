@@ -1,2 +1,2 @@
-Flask
+Flask>=3.0,<4.0
 libsql==0.1.11
